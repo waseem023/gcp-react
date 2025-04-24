@@ -5,9 +5,11 @@ steps:
   - name: "gcr.io/cloud-builders/npm"
     entrypoint: "npm"
     args: ["install"]
+
   - name: "gcr.io/cloud-builders/npm"
     entrypoint: "npm"
     args: ["run", "build"]
+
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
@@ -16,16 +18,16 @@ steps:
         "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA",
         ".",
       ]
+
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA"]
-  # 5. Deploy to Cloud Run
+
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
-    args:
-      [
+    args: [
         "run",
         "deploy",
-        "react-app",
+        "reactapp", # ✅ This correctly targets the working service!
         "--image",
         "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA",
         "--region",
@@ -33,8 +35,6 @@ steps:
         "--platform",
         "managed",
         "--allow-unauthenticated",
-        "--set-env-vars",
-        "PORT=3000",
       ]
 
 images:
