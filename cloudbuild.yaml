@@ -1,0 +1,39 @@
+options:
+  logging: CLOUD_LOGGING_ONLY # Required for user-managed service accounts
+
+steps:
+  - name: "gcr.io/cloud-builders/npm"
+    entrypoint: "npm"
+    args: ["install"]
+  - name: "gcr.io/cloud-builders/npm"
+    entrypoint: "npm"
+    args: ["run", "build"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA",
+        ".",
+      ]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA"]
+  # 5. Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      [
+        "run",
+        "deploy",
+        "react-app",
+        "--image",
+        "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
+
+images:
+  - "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA"
