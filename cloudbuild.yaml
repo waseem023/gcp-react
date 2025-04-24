@@ -19,7 +19,7 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA"]
   # 5. Deploy to Cloud Run
-    - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
       [
@@ -34,9 +34,8 @@ steps:
         "managed",
         "--allow-unauthenticated",
         "--set-env-vars",
-        "PORT=3000"
+        "PORT=3000",
       ]
-
 
 images:
   - "gcr.io/flaskhelloworldapp-457805/react-app:$COMMIT_SHA"
