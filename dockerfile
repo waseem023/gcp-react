@@ -1,20 +1,12 @@
-# Step 1: Build React
-FROM node:18 as builder
-
+# Build step #1: build the React front end
+FROM node:alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Step 2: Serve via serve
-FROM node:18
-
-WORKDIR /app
-RUN npm install -g serve
-COPY --from=builder /app/build ./build
-
+ENV PATH /app/node_modules/.bin:$PATH
+ENV PORT 3000
 EXPOSE 3000
+COPY package.json ./
+COPY ./public ./public
+COPY ./src ./src
+RUN npm install
+CMD npm start
 
-# Always serve on port 3000
-CMD ["serve", "-s", "build", "-l", "3000"]
