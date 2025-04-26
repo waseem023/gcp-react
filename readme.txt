@@ -79,7 +79,7 @@ Step 4: Deploying React to gcloud platform
 
 Step 5: To run locally, go to cmd terminal and type following: 
         1. npm install
-        2. change the url of flask of file setupProxy.js to "http://localhost:5000"
+        2. change the url of flask of file setupProxy.js to "http://localhost:8080"
         3. npm start 
 
         NOTE: IF YOU WANT TO MAKE YOUR OWN NEW REACT APP THEN GO TO CMD/TERMINAL AND TYPE "npx create-react-app your_folder_name" THAT WILL AUTOMATICALLY INSTALL "node modules",

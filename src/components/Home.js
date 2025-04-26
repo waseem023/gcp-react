@@ -1,7 +1,7 @@
 /*
 Goal of React:
   1. React will retrieve GitHub created and closed issues for a given repository and will display the bar-charts 
-     of same using high-ch arts        
+     of same using high-charts        
   2. It will also display the images of the forecasted data for the given GitHub repository and images are being retrieved from 
      Google Cloud storage
   3. React will make a fetch api call to flask microservice.
@@ -48,6 +48,8 @@ export default function Home() {
   If loading is true, we render a loader else render the Bar charts
   */
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState("repository"); 
+// can be "repository" or "stars"
   /* 
   setRepository is a function that will update the user's selected repository such as Angular,
   Angular-cli, Material Design, and D3
@@ -68,6 +70,7 @@ export default function Home() {
   // Updates the repository to newly selected repository
   const eventHandler = (repo) => {
     setRepository(repo);
+    setMode("repository");  // reset mode when clicking on a repo
   };
 
   /* 
@@ -103,6 +106,7 @@ export default function Home() {
           setLoading(false);
           // Set state on successfull response from the API
           setGithubData(result);
+          console.log(result);
         },
         // On failure from flask microservice
         (error) => {
@@ -114,6 +118,39 @@ export default function Home() {
         }
       );
   }, [repository]);
+  const [starsChartUrl, setStarsChartUrl] = useState("");
+  const [forksChartUrl, setForksChartUrl] = useState("");
+
+  const handleAnalyze = (type) => {
+    setLoading(true);
+  
+    if (type === "stars") {
+      setMode("stars");
+      fetch("/api/stars")
+        .then((res) => res.json())
+        .then((data) => {
+          setLoading(false);
+          setStarsChartUrl(data.star_bar_chart_url);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+    else if (type === "forks") {
+      setMode("forks");
+      fetch("/api/forks")
+        .then((res) => res.json())
+        .then((data) => {
+          setLoading(false);
+          setForksChartUrl(data.forks_bar_chart_url);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  };
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -129,152 +166,385 @@ export default function Home() {
           </Typography>
         </Toolbar>
       </AppBar>
-      {/* Left drawer of the application */}
       <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
-            width: drawerWidth,
-            boxSizing: "border-box",
-          },
-        }}
+  variant="permanent"
+  sx={{
+    width: drawerWidth,
+    flexShrink: 0,
+    [`& .MuiDrawer-paper`]: {
+      width: drawerWidth,
+      boxSizing: "border-box",
+    },
+  }}
+>
+  <Toolbar />
+  <Box sx={{ overflow: "auto" }}>
+    <List>
+      {/* Iterate through the repositories list */}
+      {repositories.map((repo) => (
+        <ListItem
+          button
+          key={repo.key}
+          onClick={() => eventHandler(repo)}
+          disabled={loading && repo.value !== repository.value}
+        >
+          <ListItemButton selected={repo.value === repository.value}>
+            <ListItemText primary={repo.value} />
+          </ListItemButton>
+        </ListItem>
+      ))}
+
+      {/* Divider before static analysis buttons */}
+      <Divider sx={{ my: 2 }} />
+
+      {/* Static stars analysis button */}
+      <ListItem
+        button
+        onClick={() => handleAnalyze("stars")}
+        disabled={loading}
       >
-        <Toolbar />
-        <Box sx={{ overflow: "auto" }}>
-          <List>
-            {/* Iterate through the repositories list */}
-            {repositories.map((repo) => (
-              <ListItem
-                button
-                key={repo.key}
-                onClick={() => eventHandler(repo)}
-                disabled={loading && repo.value !== repository.value}
-              >
-                <ListItemButton selected={repo.value === repository.value}>
-                  <ListItemText primary={repo.value} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+        <ListItemButton>
+          <ListItemText primary="Analyze Stars of all repositories" />
+        </ListItemButton>
+      </ListItem>
+
+      {/* Static forks analysis button (future use) */}
+      <ListItem
+        button
+        onClick={() => handleAnalyze("forks")}
+        disabled={loading}
+      >
+        <ListItemButton>
+          <ListItemText primary="🔧 Analyze Forks of all repositories" />
+        </ListItemButton>
+      </ListItem>
+    </List>
+  </Box>
+</Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
         {/* Render loader component if loading is true else render charts and images */}
         {loading ? (
-          <Loader />
-        ) : (
-          <div>
-            {/* Render barchart component for a monthly created issues for a selected repositories*/}
-            <BarCharts
-              title={`Monthly Created Issues for ${repository.value} in last 1 year`}
-              data={githubRepoData?.created}
-            />
-            {/* Render barchart component for a monthly created issues for a selected repositories*/}
-            <BarCharts
-              title={`Monthly Closed Issues for ${repository.value} in last 1 year`}
-              data={githubRepoData?.closed}
-            />
-            <Divider
-              sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500" }}
-            />
-            {/* Rendering Timeseries Forecasting of Created Issues using Tensorflow and
-                Keras LSTM */}
-            <div>
-              <Typography variant="h5" component="div" gutterBottom>
-                Timeseries Forecasting of Created Issues using Tensorflow and
-                Keras LSTM based on past month
-              </Typography>
+  <Loader />
+) : mode === "repository" ? (
+  
+<div>
+{/* Render barchart component for a monthly created issues for a selected repositories*/}
+<BarCharts
+  title={`Monthly Created Issues for ${repository.value} in last 1 year`}
+  data={githubRepoData?.created}
+/>
+{/* Render barchart component for a monthly created issues for a selected repositories*/}
+<BarCharts
+  title={`Monthly Closed Issues for ${repository.value} in last 1 year`}
+  data={githubRepoData?.closed}
+/>
+<Divider
+  sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500" }}
+/>
+{/* Rendering Timeseries Forecasting of Created Issues using Tensorflow and
+    Keras LSTM */}
+<div>
+  <Typography variant="h5" component="div" gutterBottom>
+    Timeseries Forecasting of Created Issues using Tensorflow and
+    Keras LSTM based on past month
+  </Typography>
 
-              <div>
-                <Typography component="h4">
-                  Model Loss for Created Issues
-                </Typography>
-                {/* Render the model loss image for created issues */}
-                <img
-                  src={githubRepoData?.createdAtImageUrls?.model_loss_image_url}
-                  alt={"Model Loss for Created Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-              <div>
-                <Typography component="h4">
-                  LSTM Generated Data for Created Issues
-                </Typography>
-                {/* Render the LSTM generated image for created issues*/}
-                <img
-                  src={
-                    githubRepoData?.createdAtImageUrls?.lstm_generated_image_url
-                  }
-                  alt={"LSTM Generated Data for Created Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-              <div>
-                <Typography component="h4">
-                  All Issues Data for Created Issues
-                </Typography>
-                {/* Render the all issues data image for created issues*/}
-                <img
-                  src={
-                    githubRepoData?.createdAtImageUrls?.all_issues_data_image
-                  }
-                  alt={"All Issues Data for Created Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-            </div>
-            {/* Rendering Timeseries Forecasting of Closed Issues using Tensorflow and
-                Keras LSTM  */}
-            <div>
-              <Divider
-                sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500" }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Timeseries Forecasting of Closed Issues using Tensorflow and
-                Keras LSTM based on past month
-              </Typography>
+  <div>
+    <Typography component="h4">
+      Model Loss for Created Issues
+    </Typography>
+    {/* Render the model loss image for created issues */}
+    <img
+      src={githubRepoData?.createdAtImageUrls?.model_loss_image_url}
+      alt={"Model Loss for Created Issues"}
+      loading={"lazy"}
+    />
+  </div>
+  <div>
+    <Typography component="h4">
+      LSTM Generated Data for Created Issues
+    </Typography>
+    {/* Render the LSTM generated image for created issues*/}
+    <img
+      src={
+        githubRepoData?.createdAtImageUrls?.lstm_generated_image_url
+      }
+      alt={"LSTM Generated Data for Created Issues"}
+      loading={"lazy"}
+    />
+  </div>
+  <div>
+    <Typography component="h4">
+      All Issues Data for Created Issues
+    </Typography>
+    {/* Render the all issues data image for created issues*/}
+    <img
+      src={
+        githubRepoData?.createdAtImageUrls?.all_issues_data_image
+      }
+      alt={"All Issues Data for Created Issues"}
+      loading={"lazy"}
+    />
+  </div>
+</div>
+{/* Rendering Timeseries Forecasting of Closed Issues using Tensorflow and
+    Keras LSTM  */}
+<div>
+  <Divider
+    sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500" }}
+  />
+  <Typography variant="h5" component="div" gutterBottom>
+    Timeseries Forecasting of Closed Issues using Tensorflow and
+    Keras LSTM based on past month
+  </Typography>
 
-              <div>
-                <Typography component="h4">
-                  Model Loss for Closed Issues
-                </Typography>
-                {/* Render the model loss image for closed issues  */}
-                <img
-                  src={githubRepoData?.closedAtImageUrls?.model_loss_image_url}
-                  alt={"Model Loss for Closed Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-              <div>
-                <Typography component="h4">
-                  LSTM Generated Data for Closed Issues
-                </Typography>
-                {/* Render the LSTM generated image for closed issues */}
-                <img
-                  src={
-                    githubRepoData?.closedAtImageUrls?.lstm_generated_image_url
-                  }
-                  alt={"LSTM Generated Data for Closed Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-              <div>
-                <Typography component="h4">
-                  All Issues Data for Closed Issues
-                </Typography>
-                {/* Render the all issues data image for closed issues*/}
-                <img
-                  src={githubRepoData?.closedAtImageUrls?.all_issues_data_image}
-                  alt={"All Issues Data for Closed Issues"}
-                  loading={"lazy"}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+  <div>
+    <Typography component="h4">
+      Model Loss for Closed Issues
+    </Typography>
+    {/* Render the model loss image for closed issues  */}
+    <img
+      src={githubRepoData?.closedAtImageUrls?.model_loss_image_url}
+      alt={"Model Loss for Closed Issues"}
+      loading={"lazy"}
+    />
+  </div>
+  <div>
+    <Typography component="h4">
+      LSTM Generated Data for Closed Issues
+    </Typography>
+    {/* Render the LSTM generated image for closed issues */}
+    <img
+      src={
+        githubRepoData?.closedAtImageUrls?.lstm_generated_image_url
+      }
+      alt={"LSTM Generated Data for Closed Issues"}
+      loading={"lazy"}
+    />
+  </div>
+  <div>
+    <Typography component="h4">
+      All Issues Data for Closed Issues
+    </Typography>
+    {/* Render the all issues data image for closed issues*/}
+    <img
+      src={githubRepoData?.closedAtImageUrls?.all_issues_data_image}
+      alt={"All Issues Data for Closed Issues"}
+      loading={"lazy"}
+    />
+  </div>
+  <Divider sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500", marginY: 2 }} />
+
+
+
+<div>
+<Typography variant="h5" component="div" gutterBottom>
+Timeseries Forecasting using Statsmodels SARIMAX
+</Typography>
+
+{/* Created Issues SARIMAX Forecast */}
+<div>
+<Typography component="h4">
+SARIMAX Forecast for Created Issues
+</Typography>
+<img
+src={githubRepoData?.createdAtImageUrls?.sarimax_forecast_image_url}
+alt="SARIMAX Forecast for Created Issues"
+loading="lazy"
+style={{ width: "100%", marginTop: "10px" }}
+/>
+</div>
+
+<Divider sx={{ borderBlockWidth: "2px", borderBlockColor: "#00BFFF", marginY: 2 }} />
+
+{/* Closed Issues SARIMAX Forecast */}
+<div>
+<Typography component="h4">
+SARIMAX Forecast for Closed Issues
+</Typography>
+<img
+src={githubRepoData?.closedAtImageUrls?.sarimax_forecast_image_url}
+alt="SARIMAX Forecast for Closed Issues"
+loading="lazy"
+style={{ width: "100%", marginTop: "10px" }}
+/>
+</div>
+</div>
+<Divider sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500", marginY: 2 }} />
+
+
+<Divider sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500", marginY: 2 }} />
+
+{githubRepoData?.pullsForecastImageUrls && (
+  <div>
+    <Typography variant="h5" component="div" gutterBottom>
+      Timeseries Forecasting of Pull Requests
+    </Typography>
+
+    {/* Model Loss */}
+    {githubRepoData?.pullsForecastImageUrls?.model_loss_image_url && (
+      <div>
+        <Typography component="h4">Model Loss for Pull Requests</Typography>
+        <img
+          src={githubRepoData.pullsForecastImageUrls.model_loss_image_url}
+          alt="Model Loss for Pull Requests"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    {/* LSTM Forecast */}
+    {githubRepoData?.pullsForecastImageUrls?.lstm_generated_image_url && (
+      <div>
+        <Typography component="h4">LSTM Forecast for Pull Requests</Typography>
+        <img
+          src={githubRepoData.pullsForecastImageUrls.lstm_generated_image_url}
+          alt="LSTM Forecast for Pull Requests"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    {/* All Pull Requests Historical Data */}
+    {githubRepoData?.pullsForecastImageUrls?.all_pulls_data_image && (
+      <div>
+        <Typography component="h4">All Pull Requests Historical Data</Typography>
+        <img
+          src={githubRepoData.pullsForecastImageUrls.all_pulls_data_image}
+          alt="All Pulls Historical Data"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    <Divider sx={{ borderBlockWidth: "2px", borderBlockColor: "#00BFFF", marginY: 2 }} />
+
+    {/* Prophet Forecast */}
+    {githubRepoData?.pullsForecastImageUrls?.prophet_forecast_image_url && (
+      <div>
+        <Typography component="h4">Prophet Forecast for Pull Requests</Typography>
+        <img
+          src={githubRepoData.pullsForecastImageUrls.prophet_forecast_image_url}
+          alt="Prophet Forecast for Pull Requests"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    <Divider sx={{ borderBlockWidth: "2px", borderBlockColor: "#00BFFF", marginY: 2 }} />
+
+    {/* SARIMAX Forecast */}
+    {githubRepoData?.pullsForecastImageUrls?.sarimax_forecast_image_url && (
+      <div>
+        <Typography component="h4">SARIMAX Forecast for Pull Requests</Typography>
+        <img
+          src={githubRepoData.pullsForecastImageUrls.sarimax_forecast_image_url}
+          alt="SARIMAX Forecast for Pull Requests"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+  </div>
+)}
+
+<Divider sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500", marginY: 2 }} />
+
+
+{githubRepoData?.branchesForecastImageUrls && (
+  <div>
+    <Typography variant="h5" component="div" gutterBottom>
+      Timeseries Forecasting of Branches
+    </Typography>
+
+
+    {/* All Branches Data */}
+    {githubRepoData.branchesForecastImageUrls.all_branches_data_image && (
+      <div>
+        <Typography component="h4">All Branches Historical Data</Typography>
+        <img
+          src={githubRepoData.branchesForecastImageUrls.all_branches_data_image}
+          alt="All Branches Historical Data"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    <Divider sx={{ borderBlockWidth: "2px", borderBlockColor: "#00BFFF", marginY: 2 }} />
+
+    {/* Prophet Forecast */}
+    {githubRepoData.branchesForecastImageUrls.prophet_forecast_image_url && (
+      <div>
+        <Typography component="h4">Prophet Forecast for Branches</Typography>
+        <img
+          src={githubRepoData.branchesForecastImageUrls.prophet_forecast_image_url}
+          alt="Prophet Forecast for Branches"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+
+    <Divider sx={{ borderBlockWidth: "2px", borderBlockColor: "#00BFFF", marginY: 2 }} />
+
+    {/* SARIMAX Forecast */}
+    {githubRepoData.branchesForecastImageUrls.sarimax_forecast_image_url && (
+      <div>
+        <Typography component="h4">SARIMAX Forecast for Branches</Typography>
+        <img
+          src={githubRepoData.branchesForecastImageUrls.sarimax_forecast_image_url}
+          alt="SARIMAX Forecast for Branches"
+          loading="lazy"
+          style={{ width: "100%", marginTop: "10px" }}
+        />
+      </div>
+    )}
+  </div>
+)}
+
+<Divider sx={{ borderBlockWidth: "3px", borderBlockColor: "#FFA500", marginY: 2 }} />
+</div>
+</div>
+
+
+
+) : mode === "stars" ? (
+  <div>
+    <Typography variant="h5" gutterBottom>
+      Stars Comparison Across All Repositories
+    </Typography>
+    <img
+      src={starsChartUrl}
+      alt="Stars Chart"
+      loading="lazy"
+      style={{ width: "100%", maxWidth: "900px", marginTop: "10px" }}
+    />
+  </div>
+) :
+mode === "forks" ? (
+  <div>
+    
+    <Typography variant="h5" gutterBottom>
+      Forks Comparison Across All Repositories
+    </Typography>
+    <img
+      src={forksChartUrl}
+      alt="Forks Chart"
+      loading="lazy"
+      style={{ width: "100%", maxWidth: "900px", marginTop: "10px" }}
+    />
+  </div>
+) :(
+  <div>
+    <Typography variant="h5">Github analytics forecasting</Typography>
+  </div>
+)}
       </Box>
     </Box>
   );

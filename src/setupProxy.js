@@ -11,8 +11,7 @@ module.exports = function (app) {
     createProxyMiddleware({
       // update the flask Google Cloud url
 
-      
-       target: "https://flaskapp-708210591622.us-central1.run.app",
+      target: "https://flaskapp-708210591622.us-central1.run.app",
       changeOrigin: true,
     })
   );
