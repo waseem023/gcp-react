@@ -215,7 +215,7 @@ export default function Home() {
         disabled={loading}
       >
         <ListItemButton>
-          <ListItemText primary="🔧 Analyze Forks of all repositories" />
+          <ListItemText primary=" Analyze Forks of all repositories" />
         </ListItemButton>
       </ListItem>
     </List>
